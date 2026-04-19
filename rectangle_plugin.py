@@ -1,7 +1,14 @@
-import pcbnew
 import wx
 
-import wx
+try:
+    import pcbnew
+    PCBNEW_AVAILABLE = True
+except ImportError:
+    PCBNEW_AVAILABLE = False
+    # Mock ActionPlugin for standalone
+    class ActionPlugin:
+        pass
+    pcbnew = None
 
 class RectangleDialog(wx.Dialog):
     def __init__(self, parent):
@@ -28,7 +35,7 @@ class RectangleDialog(wx.Dialog):
         grid.Add(wx.StaticText(self, label="Layer:"),
                  0, wx.ALIGN_CENTER_VERTICAL)
         self.layer_choice = wx.Choice(self, choices=[
-            "F.SilkS", "B.SilkS", "F.Cu", "B.Cu"
+            "F.SilkS", "B.SilkS", "F.Cu", "B.Cu", "User.1", "User.2"
         ])
         self.layer_choice.SetSelection(0)
         grid.Add(self.layer_choice, 1, wx.EXPAND)
@@ -52,68 +59,98 @@ class RectangleDialog(wx.Dialog):
         except ValueError:
             return None, None, None
 
-        layer_map = {
-            "F.SilkS": pcbnew.F_SilkS,
-            "B.SilkS": pcbnew.B_SilkS,
-            "F.Cu": pcbnew.F_Cu,
-            "B.Cu": pcbnew.B_Cu,
-        }
-
-        layer = layer_map[self.layer_choice.GetStringSelection()]
+        layer = self.layer_choice.GetStringSelection()
 
         return width, height, layer
 
 
-class RectanglePlugin(pcbnew.ActionPlugin):
+class RectanglePlugin(ActionPlugin if not PCBNEW_AVAILABLE else pcbnew.ActionPlugin):
     def defaults(self):
         self.name = "Draw Rectangle (by size)"
         self.category = "Modify PCB"
         self.description = "Draw a rectangle using entered width and height"
         self.show_toolbar_button = True
 
-def Run(self):
-    import wx
-    import pcbnew
+    def Run(self):
+        if not PCBNEW_AVAILABLE:
+            print("pcbnew not available, cannot run in KiCad mode")
+            return
 
-    board = pcbnew.GetBoard()
+        board = pcbnew.GetBoard()
 
-    # 🔑 Get KiCad main window (fixes rendering issues)
-    parent = wx.GetTopLevelWindows()[0]
+        # 🔑 Get KiCad PCB editor window to avoid switching to project view
+        parent = None
+        for win in wx.GetTopLevelWindows():
+            title = win.GetTitle()
+            if "PCB" in title and "Editor" in title:
+                parent = win
+                break
 
-    dialog = RectangleDialog(parent)
+        dialog = RectangleDialog(parent)
 
-    if dialog.ShowModal() != wx.ID_OK:
-        return
+        if dialog.ShowModal() != wx.ID_OK:
+            return
 
-    try:
-        width = float(dialog.width_input.GetValue())
-        height = float(dialog.height_input.GetValue())
-    except ValueError:
-        wx.MessageBox("Invalid input!", "Error", wx.OK | wx.ICON_ERROR)
-        return
+        try:
+            width = float(dialog.width_input.GetValue())
+            height = float(dialog.height_input.GetValue())
+        except ValueError:
+            wx.MessageBox("Invalid input!", "Error", wx.OK | wx.ICON_ERROR)
+            return
 
-    layer_map = {
-        "F.SilkS": pcbnew.F_SilkS,
-        "B.SilkS": pcbnew.B_SilkS,
-        "F.Cu": pcbnew.F_Cu,
-        "B.Cu": pcbnew.B_Cu,
-    }
+        layer_map = {
+            "F.SilkS": pcbnew.F_SilkS,
+            "B.SilkS": pcbnew.B_SilkS,
+            "F.Cu": pcbnew.F_Cu,
+            "B.Cu": pcbnew.B_Cu,
+            "User.1": pcbnew.User_1,
+            "User.2": pcbnew.User_2,
+        }
 
-    layer = layer_map[dialog.layer_choice.GetStringSelection()]
+        layer = layer_map[dialog.layer_choice.GetStringSelection()]
 
-    w = pcbnew.FromMM(width)
-    h = pcbnew.FromMM(height)
+        w = pcbnew.FromMM(width)
+        h = pcbnew.FromMM(height)
 
-    cursor = pcbnew.GetCursorPosition()
+        bbox = board.GetBoardEdgesBoundingBox()
+        cursor = pcbnew.VECTOR2I(
+            (bbox.GetLeft() + bbox.GetRight()) // 2,
+            (bbox.GetTop() + bbox.GetBottom()) // 2,
+        )
 
-    rect = pcbnew.PCB_SHAPE(board)
-    rect.SetShape(pcbnew.SHAPE_T_RECT)
-    rect.SetLayer(layer)
+        rect = pcbnew.PCB_SHAPE(board)
+        rect.SetShape(pcbnew.SHAPE_T_RECT)
+        rect.SetLayer(layer)
 
-    rect.SetStart(cursor)
-    rect.SetEnd(pcbnew.VECTOR2I(cursor.x + w, cursor.y + h))
+        rect.SetStart(cursor)
+        rect.SetEnd(pcbnew.VECTOR2I(cursor.x + w, cursor.y + h))
 
-    board.Add(rect)
-    pcbnew.Refresh()
+        board.Add(rect)
+        pcbnew.Refresh()
 
-Run()
+
+# For debugging in VS Code
+if __name__ == "__main__":
+    # Create a wx app for standalone testing
+    app = wx.App(False)
+    
+    # Create a mock parent window
+    frame = wx.Frame(None, title="Debug Frame")
+    
+    # Test the dialog
+    dialog = RectangleDialog(frame)
+    result = dialog.ShowModal()
+    
+    if result == wx.ID_OK:
+        width, height, layer = dialog.get_values()
+        if width is not None:
+            print(f"Width: {width} mm, Height: {height} mm, Layer: {layer}")
+        else:
+            print("Invalid input")
+    else:
+        print("Dialog cancelled")
+    
+    dialog.Destroy()
+    frame.Destroy()
+    app.MainLoop()
+
