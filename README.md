@@ -19,7 +19,7 @@ This plugin adds a dialog to draw a rectangle on a PCB using user-entered width,
 ## Required environment
 
 - KiCad 9.0 with Python scripting enabled
-- `wxPython` installed for standalone dialog debugging
+- `wxPython` installed for standalone dialog debugging  
 - A Python interpreter that is compatible with your system and KiCad installation
 
 ## Installation
