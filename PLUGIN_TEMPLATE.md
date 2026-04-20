@@ -135,8 +135,44 @@ if __name__ == "__main__":
 
 ### 3. __init__.py Template
 ```python
-# Plugin package marker - can be empty
+from .your_plugin_name import YourPluginClass
+
+YourPluginClass().register()
 ```
+
+**Required Considerations:**
+- The `__init__.py` file serves as the package initializer for the plugin.
+- It must import the main plugin class from the plugin script (e.g., `your_plugin_name.py`).
+- Call the `register()` method on an instance of the plugin class to register it with KiCad.
+- Replace `your_plugin_name` with your actual plugin filename and `YourPluginClass` with your plugin class name.
+- This ensures the plugin is automatically loaded when KiCad starts and the plugin directory is present.
+YourPluginClass().register()
+```
+
+**Required Considerations:**
+- The `__init__.py` file serves as the package initializer for the plugin.
+- It must import the main plugin class from the plugin script (e.g., `your_plugin_name.py`).
+- Call the `register()` method on an instance of the plugin class to register it with KiCad.
+- Replace `your_plugin_name` with your actual plugin filename and `YourPluginClass` with your plugin class name.
+- This ensures the plugin is automatically loaded when KiCad starts and the plugin directory is present.
+YourPluginClass().register()
+```
+
+**Required Considerations:**
+- The `__init__.py` file serves as the package initializer for the plugin.
+- It must import the main plugin class from the plugin script (e.g., `your_plugin_name.py`).
+- Call the `register()` method on an instance of the plugin class to register it with KiCad.
+- Replace `your_plugin_name` with your actual plugin filename and `YourPluginClass` with your plugin class name.
+- This ensures the plugin is automatically loaded when KiCad starts and the plugin directory is present.
+YourPluginClass().register()
+```
+
+**Required Considerations:**
+- The `__init__.py` file serves as the package initializer for the plugin.
+- It must import the main plugin class from the plugin script (e.g., `your_plugin_name.py`).
+- Call the `register()` method on an instance of the plugin class to register it with KiCad.
+- Replace `your_plugin_name` with your actual plugin filename and `YourPluginClass` with your plugin class name.
+- This ensures the plugin is automatically loaded when KiCad starts and the plugin directory is present.
 
 ### 4. README.md Template
 ```markdown
